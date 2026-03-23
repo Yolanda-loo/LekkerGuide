@@ -45,5 +45,31 @@ async def create_tour_request(request: TourRequest):
         "timestamp": datetime.now()
     }
     
+    # 3. Save to database
+    tours_db[tour_id] = new_tour
+    
+    # 4. LOGIC: Trigger a notification to the Guide
+    # In a real app, you would use WebSockets (Socket.io) here 
+    # to 'push' the request to the Guide's dashboard instantly.
+    print(f"ALERTER: Notifying Guide {request.guide_id} of a new request!")
 
+    return TourResponse(
+        tour_id=tour_id, 
+        status="pending", 
+        timestamp=new_tour["timestamp"]
+    )
+
+@app.patch("/update-tour-status/{tour_id}")
+async def update_status(tour_id: str, status: str):
+    """
+    This endpoint is hit when a Guide clicks 'ACCEPT' or 'DECLINE'
+    """
+    if tour_id not in tours_db:
+        raise HTTPException(status_code=404, detail="Tour not found")
+    
+    tours_db[tour_id]["status"] = status
+    return {"message": f"Tour {status}", "tour_id": tour_id}
+
+if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
